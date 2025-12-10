@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ссылка Сгенерирована</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Ссылка Успешно Сгенерирована</h1>
+            <div style="position: absolute; top: 20px; right: 20px;">
+                <a href="{{ url_for('logout') }}" style="color: white; text-decoration: none;">Выйти</a>
+            </div>
+        </div>
+
+        <div class="nav-menu">
+            <a href="/" class="nav-item">Главная</a>
+            <a href="/monitoring" class="nav-item">Мониторинг</a>
+        </div>
+
+        <div class="instructions">
+            <p>Ваша уникальная ссылка для близкого человека была успешно создана. Скопируйте эту ссылку и отправьте её вашему близкому. Когда он откроет ссылку, у него автоматически запросятся разрешения на доступ к камере и местоположению.</p>
+        </div>
+
+        <div class="link-box">
+            <p><strong>Ссылка для вашего близкого:</strong></p>
+            <p id="access-link">{{ link }}</p>
+            <button class="copy-button" onclick="copyToClipboard()">Копировать ссылку</button>
+            <p id="copy-status" class="status-message"></p>
+        </div>
+
+        <div class="permissions-box">
+            <h2>Запрашиваемые разрешения:</h2>
+            <ul>
+                {% for permission in permissions %}
+                    <li>
+                        {% if permission == 'camera' %}
+                            Доступ к камере
+                        {% elif permission == 'location' %}
+                            Доступ к местоположению
+                        {% else %}
+                            {{ permission }}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="instructions">
+            <h3>Что делать дальше?</h3>
+            <ol>
+                <li>Скопируйте ссылку выше</li>
+                <li>Отправьте её вашему близкому через любой удобный способ связи (WhatsApp, Telegram, SMS)</li>
+                <li>Когда ваш близкий откроет ссылку, у него автоматически запросятся разрешения</li>
+                <li>После предоставления разрешений, вы сможете видеть его местоположение и изображение с камеры на странице "Мониторинг"</li>
+            </ol>
+        </div>
+
+        <div class="button-group">
+            <a href="/" class="back-link">← Вернуться на главную</a>
+            <a href="/monitoring" class="action-button">Перейти к мониторингу</a>
+        </div>
+
+        <div class="footer">
+            <p>Система мониторинга близких людей</p>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard() {
+            const linkText = document.getElementById('access-link');
+            const textArea = document.createElement('textarea');
+            textArea.value = linkText.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+
+            const statusElement = document.getElementById('copy-status');
+            statusElement.textContent = 'Ссылка скопирована!';
+            setTimeout(() => {
+                statusElement.textContent = '';
+            }, 2000);
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

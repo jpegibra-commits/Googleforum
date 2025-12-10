@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Загрузка Видеофона</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .upload-container {
+            background-color: #f3e5f5;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 3px dashed #9c27b0;
+            padding: 40px;
+            border-radius: 8px;
+            margin: 20px 0;
+            background-color: #faf5ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background-color: #f3e5f5;
+        }
+
+        .upload-instructions {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .upload-button {
+            background-color: #6a1b9a;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+
+        .upload-button:hover {
+            background-color: #9c27b0;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            background-color: #e1bee7;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: #9c27b0;
+            width: 0%;
+            transition: width 0.3s;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+        }
+
+        .status-message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<!-- В начале страницы добавим ссылку для выхода из системы -->
+<div class="container">
+    <div class="header">
+        <h1>Загрузка Видеофона</h1>
+        <div style="position: absolute; top: 20px; right: 20px;">
+            <a href="{{ url_for('logout') }}" style="color: white; text-decoration: none;">Выйти</a>
+        </div>
+    </div>
+
+        <div class="nav-menu">
+            <a href="/" class="nav-item">Главная</a>
+            <a href="/monitoring" class="nav-item">Мониторинг</a>
+            <a href="/upload" class="nav-item active">Видеофон</a>
+        </div>
+
+        <div class="instructions">
+            <p>Загрузите видеофайл, который будет отображаться на фоне страницы доступа. Рекомендуется использовать видео в формате MP4 размером не более 10 МБ.</p>
+        </div>
+
+        <div class="upload-container">
+            <div class="upload-instructions">
+                <p>Перетащите видеофайл сюда или нажмите для выбора файла</p>
+            </div>
+
+            <div class="upload-area" id="dropArea">
+                <input type="file" id="fileInput" style="display: none;" accept="video/mp4,video/webm,video/mov">
+                <p>Перетащите видео или нажмите здесь</p>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress" id="progressBar">0%</div>
+                </div>
+                <div class="status-message" id="statusMessage"></div>
+            </div>
+
+            <button id="uploadButton" class="upload-button">Загрузить видео</button>
+        </div>
+
+        <div class="footer">
+            <p>Система мониторинга близких людей</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('dropArea');
+            const fileInput = document.getElementById('fileInput');
+            const uploadButton = document.getElementById('uploadButton');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const statusMessage = document.getElementById('statusMessage');
+
+            let selectedFile = null;
+
+            // Открываем диалог выбора файла при клике на зону загрузки
+            dropArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            // Обработчик изменения выбранного файла
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files.length > 0) {
+                    selectedFile = fileInput.files[0];
+                    dropArea.innerHTML = `<p>Выбран файл: ${selectedFile.name}</p>`;
+                    validateFile(selectedFile);
+                }
+            });
+
+            // Обработчики для перетаскивания файлов
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight() {
+                dropArea.classList.add('highlight');
+            }
+
+            function unhighlight() {
+                dropArea.classList.remove('highlight');
+            }
+
+            // Обработчик события сброса файла
+            dropArea.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    selectedFile = files[0];
+                    dropArea.innerHTML = `<p>Выбран файл: ${selectedFile.name}</p>`;
+                    validateFile(selectedFile);
+                }
+            }
+
+            // Валидация файла
+            function validateFile(file) {
+                const validTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+                const maxSize = 20 * 1024 * 1024; // 20 МБ
+
+                if (!validTypes.includes(file.type)) {
+                    statusMessage.textContent = 'Ошибка: Неподдерживаемый формат файла. Используйте MP4, WebM или MOV.';
+                    statusMessage.style.color = 'red';
+                    progressContainer.style.display = 'block';
+                    uploadButton.disabled = true;
+                    return false;
+                }
+
+                if (file.size > maxSize) {
+                    statusMessage.textContent = 'Ошибка: Файл слишком большой. Максимальный размер - 20 МБ.';
+                    statusMessage.style.color = 'red';
+                    progressContainer.style.display = 'block';
+                    uploadButton.disabled = true;
+                    return false;
+                }
+
+                statusMessage.textContent = 'Файл готов к загрузке.';
+                statusMessage.style.color = 'green';
+                progressContainer.style.display = 'block';
+                uploadButton.disabled = false;
+                return true;
+            }
+
+            // Обработчик кнопки загрузки
+            uploadButton.addEventListener('click', function() {
+                if (!selectedFile) {
+                    alert('Пожалуйста, выберите файл для загрузки');
+                    return;
+                }
+
+                if (!validateFile(selectedFile)) {
+                    return;
+                }
+
+                uploadFile(selectedFile);
+            });
+
+            // Функция загрузки файла
+            function uploadFile(file) {
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+
+                formData.append('video', file);
+
+                xhr.open('POST', '/upload_video', true);
+
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+                        progressBar.style.width = percentComplete + '%';
+                        progressBar.textContent = percentComplete + '%';
+                    }
+                };
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.status === 'success') {
+                            statusMessage.textContent = 'Файл успешно загружен!';
+                            statusMessage.style.color = 'green';
+                            setTimeout(() => {
+                                alert('Видеофон успешно загружен и будет использоваться на странице доступа.');
+                            }, 500);
+                        } else {
+                            statusMessage.textContent = 'Ошибка: ' + response.message;
+                            statusMessage.style.color = 'red';
+                        }
+                    } else {
+                        statusMessage.textContent = 'Ошибка при загрузке файла. Пожалуйста, попробуйте еще раз.';
+                        statusMessage.style.color = 'red';
+                    }
+                };
+
+                xhr.onerror = function() {
+                    statusMessage.textContent = 'Ошибка сетевого соединения. Пожалуйста, попробуйте еще раз.';
+                    statusMessage.style.color = 'red';
+                };
+
+                uploadButton.disabled = true;
+                statusMessage.textContent = 'Загрузка...';
+                statusMessage.style.color = 'blue';
+
+                xhr.send(formData);
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

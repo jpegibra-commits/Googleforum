@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мониторинг Близких</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Стили остаются прежними -->
+    <style>
+        .monitoring-item {
+            background-color: #f3e5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #9c27b0;
+        }
+
+        .monitoring-item h3 {
+            margin-top: 0;
+            color: #6a1b9a;
+        }
+
+        .monitoring-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .detail-box {
+            background-color: #e1bee7;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .detail-box h4 {
+            margin-top: 0;
+            color: #6a1b9a;
+            margin-bottom: 10px;
+        }
+
+        .map-container {
+            height: 400px;
+            background-color: #e1bee7;
+            border-radius: 8px;
+            margin-top: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-active {
+            background-color: #4CAF50;
+        }
+
+        .status-inactive {
+            background-color: #F44336;
+        }
+
+        .filter-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-button {
+            background-color: #e1bee7;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .filter-button:hover {
+            background-color: #d1c4e9;
+        }
+
+        .filter-button.active {
+            background-color: #9c27b0;
+            color: white;
+        }
+
+        .refresh-button {
+            background-color: #6a1b9a;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: auto;
+        }
+
+        .refresh-button:hover {
+            background-color: #9c27b0;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            background-color: #f3e5f5;
+            border-radius: 8px;
+            font-size: 18px;
+            color: #6a1b9a;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .map-control-button {
+            background-color: #6a1b9a;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .map-control-button:hover {
+            background-color: #9c27b0;
+        }
+
+        .location-history {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+            background-color: #f8f0fc;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .location-history-item {
+            padding: 5px;
+            border-bottom: 1px solid #e1bee7;
+            font-size: 14px;
+        }
+
+        .location-history-item:last-child {
+            border-bottom: none;
+        }
+
+        .auto-refresh-toggle {
+            display: flex;
+            align-items: center;
+            margin-left: 15px;
+        }
+
+        .auto-refresh-toggle input {
+            margin-right: 5px;
+        }
+
+        .live-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .tracking-status {
+            font-size: 14px;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .tracking-active {
+            color: #4CAF50;
+        }
+
+        .tracking-inactive {
+            color: #F44336;
+        }
+
+        .real-time-badge {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .movement-info {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #e8f5e9;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .speed-indicator {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .direction-indicator {
+            display: inline-block;
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex: 1;
+        }
+
+        .last-update {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .logout-link {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #6a1b9a;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .logout-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Стили для удаления устройств */
+        .delete-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background-color: #f3e5f5;
+            border-radius: 8px;
+        }
+
+        .select-all-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .select-all-container input {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .delete-button {
+            background-color: #F44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .delete-button:hover {
+            background-color: #D32F2F;
+        }
+
+        .delete-button:disabled {
+            background-color: #BDBDBD;
+            cursor: not-allowed;
+        }
+
+        .item-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-container {
+            margin-right: 15px;
+        }
+
+        .checkbox-container input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .flash-message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+
+        .flash-success {
+            background-color: #E8F5E9;
+            color: #2E7D32;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .flash-warning {
+            background-color: #FFF8E1;
+            color: #F57F17;
+            border-left: 5px solid #FFC107;
+        }
+
+        .flash-error {
+            background-color: #FFEBEE;
+            color: #C62828;
+            border-left: 5px solid #F44336;
+        }
+    </style>
+</head>
+<body>
+    <!-- Добавляем переключатель темы -->
+    <div class="theme-switcher">
+        <button id="theme-toggle" class="theme-button">Сменить тему</button>
+        <div class="color-picker">
+            <button id="color-picker-button" class="color-picker-button">Выбрать цвет</button>
+            <div id="color-picker-dropdown" class="color-picker-dropdown">
+                <div class="color-option color-light" data-theme="light">
+                    <div class="color-preview"></div>
+                    <span class="color-name">Светлая</span>
+                </div>
+                <div class="color-option color-dark" data-theme="dark">
+                    <div class="color-preview"></div>
+                    <span class="color-name">Темная</span>
+                </div>
+                <div class="color-option color-purple" data-theme="purple">
+                    <div class="color-preview"></div>
+                    <span class="color-name">Фиолетовая</span>
+                </div>
+                <div class="color-option color-blue" data-theme="blue">
+                    <div class="color-preview"></div>
+                    <span class="color-name">Синяя</span>
+                </div>
+                <div class="color-option color-green" data-theme="green">
+                    <div class="color-preview"></div>
+                    <span class="color-name">Зеленая</span>
+                </div>
+                <div class="color-option color-red" data-theme="red">
+                    <div class="color-preview"></div>
+                    <span class="color-name">Красная</span>
+                </div>
+                <div class="color-option color-orange" data-theme="orange">
+                    <div class="color-preview"></div>
+                    <span class="color-name">Оранжевая</span>
+                </div>
+                <div class="color-option color-teal" data-theme="teal">
+                    <div class="color-preview"></div>
+                    <span class="color-name">Бирюзовая</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <a href="/logout" class="logout-link">Выйти</a>
+
+        <div class="header">
+            <h1>Мониторинг Близких</h1>
+        </div>
+
+        <div class="nav-menu">
+            <a href="/" class="nav-item">Главная</a>
+            <a href="/monitoring" class="nav-item active">Мониторинг</a>
+        </div>
+
+        <div class="instructions">
+            <p>Здесь вы можете отслеживать местоположение и статус ваших близких, которые перешли по сгенерированным ссылкам. Отслеживание происходит в реальном времени. Чтобы удалить устройства, отметьте их галочками и нажмите кнопку "Удалить выбранные".</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="filter-controls">
+            <button class="filter-button active" data-filter="all">Все</button>
+            <button class="filter-button" data-filter="location">С местоположением</button>
+            <button class="filter-button" data-filter="active">Активные сейчас</button>
+            <button class="refresh-button" id="refresh-button">Обновить данные</button>
+            <div class="auto-refresh-toggle">
+                <input type="checkbox" id="auto-refresh" checked>
+                <label for="auto-refresh">Автообновление</label>
+                <span class="live-indicator">LIVE</span>
+            </div>
+        </div>
+
+        <!-- Форма для удаления устройств -->
+        <form action="{{ url_for('delete_devices') }}" method="post" id="delete-form">
+            <div class="delete-controls">
+                <div class="select-all-container">
+                    <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                    <label for="select-all">Выбрать все</label>
+                </div>
+                <button type="submit" class="delete-button" id="delete-button" disabled>Удалить выбранные (0)</button>
+            </div>
+
+            <!-- Список устройств для мониторинга -->
+            <div id="monitoring-list">
+                {% if monitoring_data %}
+                    {% for data in monitoring_data %}
+                        <div class="monitoring-item"
+                             data-has-location="{{ 'true' if data.location else 'false' }}"
+                             data-is-active="{{ 'true' if data.tracking_status == 'active' else 'false' }}"
+                             data-link-id="{{ data.link_id }}"
+                             data-user-id="{{ data.user_id }}">
+                            <div class="item-header">
+                                <div class="checkbox-container">
+                                    <input type="checkbox" name="selected_devices" value="{{ data.link_id }}" class="device-checkbox">
+                                </div>
+                                <div class="user-header">
+                                    <h3>
+                                        {% if data.tracking_status == 'active' %}
+                                            <span class="status-indicator status-active"></span>
+                                        {% else %}
+                                            <span class="status-indicator status-inactive"></span>
+                                        {% endif %}
+                                        {{ data.user_id }}
+                                        {% if data.tracking_status == 'active' %}
+                                            <span class="real-time-badge">ОНЛАЙН</span>
+                                        {% endif %}
+                                    </h3>
+                                </div>
+                            </div>
+                            <p><strong>Время доступа:</strong> {{ data.timestamp }}</p>
+                            {% if data.last_update %}
+                                <p class="last-update"><strong>Последнее обновление:</strong> {{ data.last_update }}</p>
+                            {% endif %}
+
+                            <div class="monitoring-details">
+                                <div class="detail-box">
+                                    <h4>Статус местоположения</h4>
+                                    {% if data.location %}
+                                        <p><strong>Широта:</strong> <span class="latitude-value">{{ data.location.latitude }}</span></p>
+                                        <p><strong>Долгота:</strong> <span class="longitude-value">{{ data.location.longitude }}</span></p>
+                                        <p><strong>Точность:</strong> <span class="accuracy-value">{{ data.location.accuracy }}</span> м</p>
+                                        <p><strong>Время:</strong> <span class="location-time">{{ data.location.timestamp }}</span></p>
+
+                                        {% if data.tracking_status == 'active' %}
+                                            <div class="tracking-status tracking-active">Отслеживание активно</div>
+                                        {% else %}
+                                            <div class="tracking-status tracking-inactive">Отслеживание неактивно</div>
+                                        {% endif %}
+
+                                        {% if data.location.speed and data.location.speed > 0 %}
+                                            <div class="movement-info">
+                                                <div class="speed-indicator">
+                                                    <strong>Скорость:</strong> <span class="speed-value">{{ (data.location.speed * 3.6) | round(1) }}</span> км/ч
+                                                </div>
+                                                {% if data.location.heading and data.location.heading >= 0 %}
+                                                    <div class="direction-indicator">
+                                                        <strong>Направление:</strong> <span class="heading-value">
+                                                        {% set directions = ['С', 'СВ', 'В', 'ЮВ', 'Ю', 'ЮЗ', 'З', 'СЗ'] %}
+                                                        {% set index = (data.location.heading / 45) | round % 8 %}
+                                                        {{ directions[index] }}
+                                                        </span>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <p>Местоположение не получено</p>
+                                        <div class="tracking-status tracking-inactive">Отслеживание неактивно</div>
+                                    {% endif %}
+
+                                    <div class="location-history" id="history-{{ loop.index }}">
+                                        {% if data.location %}
+                                            <div class="location-history-item">
+                                                {{ data.location.timestamp }}: {{ data.location.latitude }}, {{ data.location.longitude }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <h4>Статус камеры</h4>
+                                    {% if data.camera_accessed %}
+                                        <p>Доступ к камере предоставлен</p>
+                                    {% else %}
+                                        <p>Доступ к камере не предоставлен</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if data.location %}
+                                <div class="map-container" id="map-{{ loop.index }}" data-index="{{ loop.index }}"></div>
+                                <div class="map-controls">
+                                    <button class="map-control-button center-map" data-map-id="map-{{ loop.index }}">Центрировать карту</button>
+                                    <button class="map-control-button show-route" data-map-id="map-{{ loop.index }}">Показать маршрут</button>
+                                    <button class="map-control-button clear-history" data-map-id="map-{{ loop.index }}" data-history-id="history-{{ loop.index }}">Очистить историю</button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-data">
+                        <p>Пока нет данных о посещениях. Когда ваши близкие перейдут по ссылкам, информация появится здесь.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </form>
+
+        <div class="footer">
+            <p>Система мониторинга близких людей</p>
+        </div>
+    </div>
+
+    <!-- Подключаем скрипт для переключения темы -->
+    <script src="{{ url_for('static', filename='js/theme-switcher.js') }}"></script>
+
+    <!-- Скрипт для работы с мониторингом и удалением устройств -->
+    <script>
+        // Глобальные переменные для хранения карт и маркеров
+        const maps = {};
+        const markers = {};
+        const routes = {};
+        const locationHistory = {};
+
+        // Настройка частоты обновления (в миллисекундах)
+        const UPDATE_INTERVAL = 2000; // 2 секунды для реального времени
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Фильтрация элементов мониторинга
+            const filterButtons = document.querySelectorAll('.filter-button');
+            const monitoringItems = document.querySelectorAll('.monitoring-item');
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Удаляем активный класс со всех кнопок
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    // Добавляем активный класс на нажатую кнопку
+                    this.classList.add('active');
+
+                    const filter = this.getAttribute('data-filter');
+
+                    monitoringItems.forEach(item => {
+                        if (filter === 'all') {
+                            item.style.display = 'block';
+                        } else if (filter === 'location') {
+                            if (item.getAttribute('data-has-location') === 'true') {
+                                item.style.display = 'block';
+                            } else {
+                                item.style.display = 'none';
+                            }
+                        } else if (filter === 'active') {
+                            if (item.getAttribute('data-is-active') === 'true') {
+                                item.style.display = 'block';
+                            } else {
+                                item.style.display = 'none';
+                            }
+                        }
+                    });
+                });
+            });
+
+            // Инициализация карт
+            initializeMaps();
+
+            // Настройка автообновления
+            const autoRefreshCheckbox = document.getElementById('auto-refresh');
+            let refreshInterval;
+
+            function startAutoRefresh() {
+                // Сначала запрашиваем обновления сразу
+                fetchUpdates();
+                // Затем устанавливаем интервал
+                refreshInterval = setInterval(fetchUpdates, UPDATE_INTERVAL);
+            }
+
+            function stopAutoRefresh() {
+                clearInterval(refreshInterval);
+            }
+
+            autoRefreshCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    startAutoRefresh();
+                    document.querySelector('.live-indicator').style.display = 'inline-block';
+                } else {
+                    stopAutoRefresh();
+                    document.querySelector('.live-indicator').style.display = 'none';
+                }
+            });
+
+            // Запускаем автообновление по умолчанию
+            if (autoRefreshCheckbox.checked) {
+                startAutoRefresh();
+            }
+
+            // Обработчик для кнопки обновления
+            document.getElementById('refresh-button').addEventListener('click', fetchUpdates);
+
+            // Обработчики для кнопок управления картой
+            document.querySelectorAll('.center-map').forEach(button => {
+                button.addEventListener('click', function() {
+                    const mapId = this.getAttribute('data-map-id');
+                    centerMap(mapId);
+                });
+            });
+
+            document.querySelectorAll('.show-route').forEach(button => {
+                button.addEventListener('click', function() {
+                    const mapId = this.getAttribute('data-map-id');
+                    toggleRoute(mapId);
+                });
+            });
+
+            document.querySelectorAll('.clear-history').forEach(button => {
+                button.addEventListener('click', function() {
+                    const mapId = this.getAttribute('data-map-id');
+                    const historyId = this.getAttribute('data-history-id');
+                    clearHistory(mapId, historyId);
+                });
+            });
+
+            // Функции для работы с чекбоксами и удалением устройств
+            const deviceCheckboxes = document.querySelectorAll('.device-checkbox');
+            const selectAllCheckbox = document.getElementById('select-all');
+            const deleteButton = document.getElementById('delete-button');
+            const deleteForm = document.getElementById('delete-form');
+
+            // Функция для выбора/снятия выбора со всех устройств
+            window.toggleSelectAll = function() {
+                deviceCheckboxes.forEach(checkbox => {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+
+                updateDeleteButton();
+            }
+
+            // Функция для обновления текста кнопки удаления
+            function updateDeleteButton() {
+                const selectedCheckboxes = document.querySelectorAll('.device-checkbox:checked');
+
+                if (selectedCheckboxes.length > 0) {
+                    deleteButton.textContent = `Удалить выбранные (${selectedCheckboxes.length})`;
+                    deleteButton.disabled = false;
+                } else {
+                    deleteButton.textContent = 'Удалить выбранные (0)';
+                    deleteButton.disabled = true;
+                }
+            }
+
+            // Добавляем обработчики событий для чекбоксов
+            deviceCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateDeleteButton();
+
+                    // Проверяем, все ли чекбоксы выбраны
+                    const allChecked = Array.from(deviceCheckboxes).every(cb => cb.checked);
+                    selectAllCheckbox.checked = allChecked;
+                });
+            });
+
+            // Добавляем подтверждение перед удалением
+            deleteForm.addEventListener('submit', function(event) {
+                const selectedCount = document.querySelectorAll('.device-checkbox:checked').length;
+
+                if (selectedCount === 0) {
+                    event.preventDefault();
+                    alert('Выберите хотя бы одно устройство для удаления.');
+                    return;
+                }
+
+                if (!confirm(`Вы уверены, что хотите удалить ${selectedCount} устройств? Это действие нельзя отменить.`)) {
+                    event.preventDefault();
+                }
+            });
+
+            // Инициализируем состояние кнопки удаления
+            updateDeleteButton();
+        });
+
+        // Функция для обновления данных
+        function fetchUpdates() {
+            console.log('Запрос обновлений...');
+            fetch('/get_latest_locations')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Получены данные:', data);
+                    updateLocations(data);
+                    updateTrackingStatus(data);
+                })
+                .catch(error => {
+                    console.error('Ошибка при получении обновлений:', error);
+                });
+        }
+
+        // Функция обновления местоположений
+        function updateLocations(data) {
+            for (const linkId in data) {
+                const locationData = data[linkId];
+                const monitoringItem = document.querySelector(`.monitoring-item[data-link-id="${linkId}"]`);
+
+                if (monitoringItem && locationData) {
+                    console.log(`Обновление данных для ${linkId}:`, locationData);
+
+                    // Находим индекс карты
+                    const mapContainer = monitoringItem.querySelector('.map-container');
+                    if (!mapContainer) continue;
+
+                    const mapId = mapContainer.id;
+                    const index = mapContainer.getAttribute('data-index');
+
+                    // Обновляем информацию о местоположении
+                    const latElement = monitoringItem.querySelector('.latitude-value');
+                    const lngElement = monitoringItem.querySelector('.longitude-value');
+                    const accuracyElement = monitoringItem.querySelector('.accuracy-value');
+                    const timeElement = monitoringItem.querySelector('.location-time');
+
+                    if (latElement && lngElement && accuracyElement && timeElement) {
+                        latElement.textContent = locationData.latitude;
+                        lngElement.textContent = locationData.longitude;
+                        accuracyElement.textContent = locationData.accuracy;
+                        timeElement.textContent = locationData.timestamp;
+
+                        // Обновляем информацию о скорости и направлении
+                        updateMovementInfo(monitoringItem, locationData);
+
+                        // Добавляем новую запись в историю местоположений
+                        const historyContainer = document.getElementById(`history-${index}`);
+                        if (historyContainer) {
+                            const newLocation = {
+                                lat: locationData.latitude,
+                                lng: locationData.longitude,
+                                timestamp: locationData.timestamp
+                            };
+
+                            // Проверяем, изменилось ли местоположение
+                            const lastLocation = locationHistory[mapId] ? locationHistory[mapId][locationHistory[mapId].length - 1] : null;
+
+                            // Добавляем в историю, даже если координаты не сильно изменились
+                            // но прошло достаточно времени (для отслеживания стоящего человека)
+                            const significantChange = !lastLocation ||
+                                Math.abs(lastLocation.lat - newLocation.lat) > 0.00001 ||
+                                Math.abs(lastLocation.lng - newLocation.lng) > 0.00001;
+
+                            const timeChange = !lastLocation ||
+                                new Date(newLocation.timestamp) - new Date(lastLocation.timestamp) > 10000;
+
+                            if (significantChange || timeChange) {
+                                if (!locationHistory[mapId]) {
+                                    locationHistory[mapId] = [];
+                                }
+                                locationHistory[mapId].push(newLocation);
+
+                                // Ограничиваем историю до 100 точек
+                                if (locationHistory[mapId].length > 100) {
+                                    locationHistory[mapId].shift();
+                                }
+
+                                // Добавляем новую запись в историю на странице
+                                const historyItem = document.createElement('div');
+                                historyItem.className = 'location-history-item';
+                                historyItem.textContent = `${newLocation.timestamp}: ${newLocation.lat.toFixed(6)}, ${newLocation.lng.toFixed(6)}`;
+                                historyContainer.appendChild(historyItem);
+
+                                // Ограничиваем количество элементов в DOM
+                                if (historyContainer.children.length > 50) {
+                                    historyContainer.removeChild(historyContainer.children[0]);
+                                }
+
+                                historyContainer.scrollTop = historyContainer.scrollHeight;
+
+                                // Обновляем карту
+                                updateMap(mapId, newLocation.lat, newLocation.lng);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Функция обновления информации о движении
+        function updateMovementInfo(monitoringItem, locationData) {
+            // Находим или создаем контейнер для информации о движении
+            let movementInfo = monitoringItem.querySelector('.movement-info');
+            if (!movementInfo && (locationData.speed > 0 || locationData.heading >= 0)) {
+                const detailBox = monitoringItem.querySelector('.detail-box');
+                if (!detailBox) return;
+
+                movementInfo = document.createElement('div');
+                movementInfo.className = 'movement-info';
+                detailBox.appendChild(movementInfo);
+            }
+
+            if (movementInfo) {
+                let html = '';
+
+                // Добавляем информацию о скорости
+                if (locationData.speed > 0) {
+                    const speedKmh = (locationData.speed * 3.6).toFixed(1);
+                    html += `<div class="speed-indicator"><strong>Скорость:</strong> <span class="speed-value">${speedKmh}</span> км/ч</div>`;
+                }
+
+                // Добавляем информацию о направлении
+                if (locationData.heading >= 0) {
+                    const directions = ['С', 'СВ', 'В', 'ЮВ', 'Ю', 'ЮЗ', 'З', 'СЗ'];
+                    const index = Math.round(locationData.heading / 45) % 8;
+                    html += `<div class="direction-indicator"><strong>Направление:</strong> <span class="heading-value">${directions[index]}</span></div>`;
+                }
+
+                if (html) {
+                    movementInfo.innerHTML = html;
+                    movementInfo.style.display = 'block';
+                } else {
+                    movementInfo.style.display = 'none';
+                }
+            }
+        }
+
+        // Функция обновления статуса отслеживания
+        function updateTrackingStatus(data) {
+            for (const linkId in data) {
+                const locationData = data[linkId];
+                const monitoringItem = document.querySelector(`.monitoring-item[data-link-id="${linkId}"]`);
+
+                if (monitoringItem && locationData) {
+                    // Обновляем статус отслеживания
+                    const statusIndicator = monitoringItem.querySelector('.status-indicator');
+                    const trackingStatus = monitoringItem.querySelector('.tracking-status');
+                    const realTimeBadge = monitoringItem.querySelector('.real-time-badge');
+                    const lastUpdateElement = monitoringItem.querySelector('.last-update');
+
+                    // Обновляем атрибут для фильтрации
+                    monitoringItem.setAttribute('data-is-active', locationData.tracking_status === 'active' ? 'true' : 'false');
+
+                    if (statusIndicator && trackingStatus) {
+                        if (locationData.tracking_status === 'active') {
+                            statusIndicator.className = 'status-indicator status-active';
+                            trackingStatus.className = 'tracking-status tracking-active';
+                            trackingStatus.textContent = 'Отслеживание активно';
+
+                            // Показываем бейдж "ОНЛАЙН"
+                            if (!realTimeBadge) {
+                                const newBadge = document.createElement('span');
+                                newBadge.className = 'real-time-badge';
+                                newBadge.textContent = 'ОНЛАЙН';
+                                monitoringItem.querySelector('h3').appendChild(newBadge);
+                            }
+                        } else {
+                            statusIndicator.className = 'status-indicator status-inactive';
+                            trackingStatus.className = 'tracking-status tracking-inactive';
+                            trackingStatus.textContent = 'Отслеживание неактивно';
+
+                            // Удаляем бейдж "ОНЛАЙН"
+                            if (realTimeBadge) {
+                                realTimeBadge.remove();
+                            }
+                        }
+                    }
+
+                    // Обновляем информацию о последнем обновлении
+                    if (locationData.last_update) {
+                        if (lastUpdateElement) {
+                            lastUpdateElement.innerHTML = `<strong>Последнее обновление:</strong> ${locationData.last_update}`;
+                        } else {
+                            const newLastUpdate = document.createElement('p');
+                            newLastUpdate.className = 'last-update';
+                            newLastUpdate.innerHTML = `<strong>Последнее обновление:</strong> ${locationData.last_update}`;
+                            monitoringItem.insertBefore(newLastUpdate, monitoringItem.querySelector('.monitoring-details'));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Функция обновления карты
+        function updateMap(mapId, latitude, longitude) {
+            if (maps[mapId]) {
+                // Обновляем координаты в объекте карты
+                maps[mapId].latitude = latitude;
+                maps[mapId].longitude = longitude;
+
+                // Обновляем iframe с новыми координатами
+                const routeParam = maps[mapId].showRoute && locationHistory[mapId].length > 1 ? createRouteParam(mapId) : '';
+                maps[mapId].iframe.src = `https://maps.google.com/maps?q=${latitude},${longitude}&z=15${routeParam}&output=embed`;
+            }
+        }
+
+        // Функция для центрирования карты
+        function centerMap(mapId) {
+            if (maps[mapId]) {
+                const latitude = maps[mapId].latitude;
+                const longitude = maps[mapId].longitude;
+
+                // Обновляем iframe с текущими координатами
+                const routeParam = maps[mapId].showRoute && locationHistory[mapId].length > 1 ? createRouteParam(mapId) : '';
+                maps[mapId].iframe.src = `https://maps.google.com/maps?q=${latitude},${longitude}&z=15${routeParam}&output=embed`;
+            }
+        }
+
+        // Функция для переключения отображения маршрута
+        function toggleRoute(mapId) {
+            if (maps[mapId] && locationHistory[mapId] && locationHistory[mapId].length > 1) {
+                maps[mapId].showRoute = !maps[mapId].showRoute;
+
+                const latitude = maps[mapId].latitude;
+                const longitude = maps[mapId].longitude;
+
+                // Обновляем iframe с или без маршрута
+                const routeParam = maps[mapId].showRoute ? createRouteParam(mapId) : '';
+                maps[mapId].iframe.src = `https://maps.google.com/maps?q=${latitude},${longitude}&z=15${routeParam}&output=embed`;
+
+                // Обновляем текст кнопки
+                const button = document.querySelector(`.show-route[data-map-id="${mapId}"]`);
+                if (button) {
+                    button.textContent = maps[mapId].showRoute ? 'Скрыть маршрут' : 'Показать маршрут';
+                }
+            }
+        }
+
+        // Функция для создания параметра маршрута
+        function createRouteParam(mapId) {
+            if (!locationHistory[mapId] || locationHistory[mapId].length < 2) return '';
+
+            // Берем последние 10 точек для маршрута (или меньше, если точек меньше)
+            const points = locationHistory[mapId].slice(-10);
+
+            // Создаем строку с маршрутом
+            // Формат: &dirflg=w&saddr=lat1,lng1&daddr=lat2,lng2+to:lat3,lng3+to:...
+            let routeParam = '&dirflg=w&saddr=' + points[0].lat + ',' + points[0].lng + '&daddr=';
+
+            for (let i = 1; i < points.length; i++) {
+                routeParam += points[i].lat + ',' + points[i].lng;
+                if (i < points.length - 1) {
+                    routeParam += '+to:';
+                }
+            }
+
+            return routeParam;
+        }
+
+        // Функция для очистки истории
+        function clearHistory(mapId, historyId) {
+            if (locationHistory[mapId]) {
+                // Сохраняем только последнюю точку
+                const lastPoint = locationHistory[mapId][locationHistory[mapId].length - 1];
+                locationHistory[mapId] = [lastPoint];
+
+                // Очищаем историю на странице
+                const historyContainer = document.getElementById(historyId);
+                if (historyContainer) {
+                    historyContainer.innerHTML = '';
+
+                    // Добавляем последнюю точку
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'location-history-item';
+                    historyItem.textContent = `${lastPoint.timestamp}: ${lastPoint.lat}, ${lastPoint.lng}`;
+                    historyContainer.appendChild(historyItem);
+                }
+
+                // Если был включен маршрут, отключаем его
+                if (maps[mapId] && maps[mapId].showRoute) {
+                    maps[mapId].showRoute = false;
+
+                    // Обновляем текст кнопки
+                    const button = document.querySelector(`.show-route[data-map-id="${mapId}"]`);
+                    if (button) {
+                        button.textContent = 'Показать маршрут';
+                    }
+
+                    // Обновляем карту
+                    centerMap(mapId);
+                }
+            }
+        }
+
+        // Функция инициализации карт
+        function initializeMaps() {
+            const mapContainers = document.querySelectorAll('.map-container');
+
+            mapContainers.forEach(container => {
+                const mapId = container.id;
+                const index = container.getAttribute('data-index');
+                const monitoringItem = container.closest('.monitoring-item');
+
+                if (monitoringItem) {
+                    const latElement = monitoringItem.querySelector('.latitude-value');
+                    const lngElement = monitoringItem.querySelector('.longitude-value');
+
+                    if (latElement && lngElement) {
+                        const latitude = parseFloat(latElement.textContent);
+                        const longitude = parseFloat(lngElement.textContent);
+
+                        // Инициализируем историю местоположений
+                        locationHistory[mapId] = [{
+                            lat: latitude,
+                            lng: longitude,
+                            timestamp: monitoringItem.querySelector('.location-time').textContent
+                        }];
+
+                        // Создаем iframe с Google Maps
+                        container.innerHTML = `
+                            <iframe
+                                id="iframe-${mapId}"
+                                width="100%"
+                                height="100%"
+                                frameborder="0"
+                                scrolling="no"
+                                marginheight="0"
+                                marginwidth="0"
+                                src="https://maps.google.com/maps?q=${latitude},${longitude}&z=15&output=embed">
+                            </iframe>
+                        `;
+
+                        // Сохраняем информацию о карте
+                        maps[mapId] = {
+                            iframe: document.getElementById(`iframe-${mapId}`),
+                            latitude: latitude,
+                            longitude: longitude,
+                            showRoute: false
+                        };
+                    }
+                }
+            });
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Генератор ссылок для отслеживания</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #6a1b9a;
+            margin-bottom: 10px;
+        }
+
+        .nav-menu {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background-color: #9c27b0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .nav-item {
+            padding: 15px 25px;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        .nav-item:hover {
+            background-color: #7b1fa2;
+        }
+
+        .nav-item.active {
+            background-color: #6a1b9a;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .checkbox-group {
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            margin-bottom: 10px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .submit-button {
+            background-color: #6a1b9a;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .submit-button:hover {
+            background-color: #9c27b0;
+        }
+
+        .instructions {
+            background-color: #e8eaf6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid #3f51b5;
+        }
+
+        .instructions h2 {
+            margin-top: 0;
+            color: #3f51b5;
+        }
+
+        .instructions p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+
+        .logout-link {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #6a1b9a;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .logout-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .form-container {
+                padding: 20px;
+            }
+
+            .nav-item {
+                padding: 12px 15px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Подключаем переключатель темы -->
+    {% include 'theme_switcher.html' %}
+
+    <div class="container">
+        <a href="/logout" class="logout-link">Выйти</a>
+
+        <div class="header">
+            <h1>Генератор ссылок для отслеживания близких</h1>
+            <p>Создавайте ссылки для отслеживания местоположения ваших близких</p>
+        </div>
+
+        <div class="nav-menu">
+            <a href="/" class="nav-item active">Главная</a>
+            <a href="/monitoring" class="nav-item">Мониторинг</a>
+            <a href="/devices" class="nav-item">Устройства</a>
+        </div>
+
+        <div class="instructions">
+            <h2>Как это работает</h2>
+            <p>1. Введите имя человека, которого хотите отслеживать.</p>
+            <p>2. Выберите разрешения, которые хотите запросить.</p>
+            <p>3. Нажмите кнопку "Создать ссылку" и отправьте сгенерированную ссылку человеку.</p>
+            <p>4. Когда человек перейдет по ссылке и предоставит доступ, вы сможете отслеживать его местоположение в разделе "Мониторинг".</p>
+        </div>
+
+        <div class="form-container">
+            <form action="/generate_link" method="post">
+                <div class="form-group">
+                    <label for="user_id">Имя человека:</label>
+                    <input type="text" id="user_id" name="user_id" placeholder="Например: Мама, Папа, Сын и т.д." required>
+                </div>
+
+                <div class="form-group">
+                    <label>Разрешения:</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="location" name="permissions" value="location" checked>
+                            <label for="location">Местоположение</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-button">Создать ссылку</button>
+            </form>
+        </div>
+
+        <div class="existing-links">
+            <h2>Существующие Ссылки</h2>
+            {% if links %}
+                <ul>
+                    {% for link_id, data in links.items() %}
+                    <li>
+                        <strong>Имя:</strong> {{ data['user_id'] }}<br>
+                        <strong>Разрешения:</strong>
+                        {% for permission in data['permissions'] %}
+                            {% if permission == 'camera' %}
+                                Камера
+                            {% elif permission == 'location' %}
+                                Местоположение
+                            {% else %}
+                                {{ permission }}
+                            {% endif %}
+                            {% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                        <br>
+                        <strong>Создано:</strong> {{ data.get('created_at', 'Неизвестно') }}<br>
+                        <div class="link-actions">
+                            <a href="{{ url_for('access', link_id=link_id) }}" target="_blank" class="action-button">Открыть ссылку</a>
+                            <button class="action-button copy-link" data-link="{{ url_for('access', link_id=link_id, _external=True) }}">Копировать ссылку</button>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Пока нет созданных ссылок.</p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>Система мониторинга близких людей</p>
+        </div>
+    </div>
+
+    <script>
+        // Функция для копирования ссылки
+        document.addEventListener('DOMContentLoaded', function() {
+            const copyButtons = document.querySelectorAll('.copy-link');
+
+            copyButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const link = this.getAttribute('data-link');
+                    const textArea = document.createElement('textarea');
+                    textArea.value = link;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+
+                    // Показываем уведомление
+                    const originalText = this.textContent;
+                    this.textContent = 'Скопировано!';
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                });
+            });
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme-switcher.js') }}"></script>
+</body>
+</html>

