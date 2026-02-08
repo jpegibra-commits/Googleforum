@@ -64,7 +64,7 @@ def login():
         password = request.form.get('password')
 
         # Простая проверка учетных данных (в реальном приложении используйте безопасное хранение паролей)
-        if username == 'admin' and password == 'hacker1':
+        if username == 'admin' and password == 'admin':
             session['logged_in'] = True
             session['username'] = username
 
